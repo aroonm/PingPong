@@ -1,0 +1,188 @@
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.Point;
+import java.awt.Toolkit;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
+import java.applet.AudioClip;
+import java.awt.image.BufferStrategy;
+import java.awt.image.MemoryImageSource;
+import java.applet.*;
+import java.io.*;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.JFrame;
+ 
+public class Pong extends JFrame implements MouseMotionListener 
+{
+    private int windowWidth=800;
+    private int windowHeight=600;
+    private Ball ball;
+    private Paddle paddle=new Paddle(10, windowHeight-30, 140, Color.RED);
+    private int colorTimer;
+    private int hits;
+     
+    public static void main(String ar[])throws IOException 
+    {
+        new Pong();
+    }
+    public Pong()throws IOException
+    {
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setSize(windowWidth,windowHeight);
+        this.setResizable(false);
+        this.setLocation(100, 100);
+        this.setVisible(true);
+        this.createBufferStrategy(2);
+        addMouseMotionListener(this);
+        initGame();
+        while(true) 
+        {
+            long start=System.currentTimeMillis();
+            gameLoop();
+            while(System.currentTimeMillis()-start < 5)
+            {/*Do nothing*/}
+        }
+    }
+    private void initGame() 
+    {
+        // all you're game variables should be initialized here
+        hideCursor();
+        ball=new Ball(windowWidth/2, windowHeight/2, 1, 1);
+        // 1st 2 coordinates indicate initial position of the ball (approximately the centre of the canvas)
+        // 1,1 represent the speed (dx,dy)
+        paddle=new Paddle(10, windowHeight-30, 140, Color.RED);
+        hits=0;
+    }
+    private void gameLoop()throws IOException
+    {
+        // your game logic goes here
+        // move the ball 
+        ball.x=ball.x+ball.dx;
+        ball.y=ball.y+ball.dy;
+        // change the direction of the ball if it hits a wall
+        if(ball.x<=0 || ball.x>=windowWidth-20) // If windowiddth"-20" isnt used, the ball goes 40 pixel beyond the right wall (as dimensions of the wall is calculated from it's left)
+        {
+            ball.dx = -ball.dx;
+        }
+        if(ball.y <= 15)// Top wall
+        {
+            ball.dy = -ball.dy;
+        }
+        // check if ball hits the paddle
+        if(ball.y>=windowHeight-50 && ball.x >= paddle.x && ball.x<= paddle.x+paddle.width) 
+        {
+            // update hit count
+            hits++;
+            // make the paddle longer
+            paddle.width+=20;
+            // set the colorTimer to 20 so that the paddle flashes green
+            colorTimer=20;
+            // speed the ball up
+            if(ball.dx > 0)
+            {
+                ball.dx++;
+            }
+            else 
+            {
+                ball.dx--;
+            }
+            if(ball.dy > 0)
+            {
+                ball.dy++;
+            }
+            else 
+            {
+                ball.dy--;
+            }
+            // bounce the ball back
+            ball.dy=-ball.dy;
+        }
+        // if the colorTimer > 0 make the paddle gray and decrease colorTimer
+        if(colorTimer > 0) 
+        {
+            paddle.color = Color.GRAY;
+            colorTimer--;
+        } 
+        else 
+        {
+            paddle.color = Color.RED;
+        }
+        // check if the ball fell down, if so then reset the game
+        if(ball.y >= windowHeight-30) 
+        {
+            initGame();
+        }
+        // Draw everything you've just initialised 
+        drawFrame();
+    }
+    private void drawFrame() 
+    {
+        // code for the drawing goes here
+        BufferStrategy bf = this.getBufferStrategy();
+        Graphics g = null;
+        
+        try {
+            
+            g = bf.getDrawGraphics();
+            
+            // clear the back buffer (just draw a big black rectangle over it)
+            g.setColor(Color.BLACK);
+            g.fillRect(0, 0, windowWidth, windowHeight);
+        
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", 20, 30));
+            g.drawString(""+hits, 95, 60);
+            
+            g.setColor(Color.RED);
+            g.drawString("Hits: ", 20, 60);
+            
+            g.setColor(Color.GRAY);
+            g.setFont(new Font("Arial",1, 10));
+            g.drawString("Rhea Mathai Productions 2011 ©",300,60);
+            
+            drawBall(g);
+            drawPaddle(g);
+            
+        } 
+        finally 
+        {
+            // It is best to dispose() a Graphics object when done with it.
+            g.dispose();
+        }
+        
+        // Shows the contents of the backbuffer on the screen.
+        bf.show();
+     
+        //Tell the System to do the Drawing now, otherwise it can take a few extra ms until 
+        //Drawing is done which looks very jerky
+        Toolkit.getDefaultToolkit().sync();
+    }
+    private void drawBall(Graphics g) 
+    {
+        g.setColor(Color.WHITE);
+        g.fillOval(ball.x, ball.y, 20, 20);
+    }
+    private void drawPaddle(Graphics g) 
+    {
+        g.setColor(paddle.color);
+        g.fillRoundRect(paddle.x, paddle.y, paddle.width, 15, 10, 110);
+        // 15: Thickness of Paddle
+        // 10, 110: How much the paddle is curved
+    }
+    public void mouseDragged(MouseEvent e) { }
+    public void mouseMoved(MouseEvent e) 
+    {
+        paddle.x = e.getX();
+    }
+    private void hideCursor() 
+    {
+        int[] pixels = new int[16 * 16];
+        Image image = Toolkit.getDefaultToolkit().createImage(new MemoryImageSource(16, 16, pixels, 0, 16));
+        Cursor transparentCursor = Toolkit.getDefaultToolkit().createCustomCursor(image, new Point(0, 0), "invisiblecursor");
+        getContentPane().setCursor(transparentCursor);
+    }
+}
